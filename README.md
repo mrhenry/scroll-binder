@@ -50,6 +50,9 @@ Options has a property `over`, being an integer of the scrolling distance and a 
 
 `animations` is an object that has selectors as keys (+ `this` for the actual element). The animatied properties then are specified in an object with CSS properties as keys and a tweening object as value. A tweening object looks like `{ from: int, to: int, over: int, unit: string }`. Either `from` or `to` is optional, taking over the initial value from the CSS. `over` is optional too, allowing you to override the global scrolling distance. `unit` is optional too, falling back to `px` for normal CSS properties and an empty string for transform properties.
 
+**Since 0.0.3** there's support for viewport detection (still very basic, and very opinionated; up for improvements).
+You can add a `viewport: true` to your property animation and it will wait for the animation to start until the elements top enters the bottom of the viewport. You can also use `'viewport'` as a value for `over` which will use the viewport height (minus a top & bottom buffer of the `delay` value) as the animation duration. *Note that animating the top position while using viewport may be buggy. It also doesn't support resizing your viewport after initial load*.
+
 ### Dependencies
 
 For now, dependent on any recent jQuery version (using `$()`, `$().find()`, `$.inArray`, `$.proxy` and `$().css()`).

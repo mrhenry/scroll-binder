@@ -26,13 +26,42 @@
       left: 50%;
       transform: translate(-50%, -50%);
     }
+
+    #viewport-demo {
+      border: 10px solid #f36355;
+      margin-left: 5vw;
+      margin-top: 120vh;
+      display: block;
+      height: 3vw;
+      width: 3vw;
+      background-color: #fff;
+    }
+
+    #scrollpos-indicator {
+      background-color: rgba(0, 0, 0, .05);
+      color: #fff;
+      position: fixed;
+      top: 0;
+      left: 0;
+      padding: 10px 15px 10px 0;
+      width: 50px;
+      text-align: right;
+      font-family: Monaco, monospace;
+      -webkit-font-smoothing: antialiased;
+    }
   </style>
 </head>
 <body>
+  <div id="scrollpos-indicator">0</div>
   <div id="demo"></div>
-  <script src="//ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
+  <div id="viewport-demo"></div>
+  <script src="//ajax.googleapis.com/ajax/libs/jquery/2.1.4/jquery.min.js"></script>
   <script type="text/javascript" src="scroll-binder.js"></script>
   <script type="text/javascript">
+    $(window).on('scroll', function () {
+      $('#scrollpos-indicator').text($(document.body).scrollTop());
+    });
+
     new ScrollBinder($(document.body), {
       over: 400,
       animations: {
@@ -42,6 +71,9 @@
           'translateX':    { from: -50, to: -50, unit: '%' },
           'translateY':    { from: -50, to: -50, unit: '%' },
           'rotate':        { from: 0, to: 90, unit: 'deg' }
+        },
+        '#viewport-demo': {
+          'width': { from: 3, to: 90, unit: 'vw', viewport: true, delay: 0, over: 'viewport' }
         }
       }
     });

@@ -154,12 +154,21 @@
         to           = value.to,
         over         = value.over || this.scrollDistance,
         delay        = value.delay || this.scrollDelay,
-        unit         = (typeof value.unit === 'string') ? value.unit : ((!!isTransform) ? '' : 'px');
+        unit         = (typeof value.unit === 'string') ? value.unit : ((!!isTransform) ? '' : 'px'),
+        viewport     = (typeof value.viewport === 'undefined') ? false : true;
 
     defaultValue = isNaN(defaultValue) ? 0 : defaultValue;
 
     from = (typeof from === 'undefined') ? defaultValue : from;
     to   = (typeof to === 'undefined') ? defaultValue : to;
+
+    if (over === 'viewport') {
+      over = (window.innerHeight - 2 * delay);
+    }
+
+    if (!!viewport) {
+      delay += ($element.offset().top - window.innerHeight);
+    }
 
     // Construct the animation function for this property and attach it to the initialized object
     return {
@@ -182,6 +191,10 @@
   ScrollBinder.prototype.buildPropertyFunction = function(from, to, over, delay) {
     return function (scrollPos) {
       var newValue;
+
+      if (over === 'viewport') {
+        over = window.innerHeight;
+      }
 
       scrollPos -= delay;
       scrollPos = (scrollPos < 0) ? 0 : scrollPos;
@@ -282,7 +295,7 @@
     this.scrollFlag = false;
 
     // Animate all properties
-    this.animate($(window).scrollTop());
+    this.animate(this.$element.scrollTop());
 
     // Once per 16ms (= 1 frame at 60fps)
     setTimeout(function () {
