@@ -53,6 +53,14 @@ Options has a property `over`, being an integer of the scrolling distance and a 
 **Since 0.0.3** there's support for viewport detection (still very basic, and very opinionated; up for improvements).
 You can add a `viewport: true` to your property animation and it will wait for the animation to start until the elements top enters the bottom of the viewport. You can also use `'viewport'` as a value for `over` which will use the viewport height (minus a top & bottom buffer of the `delay` value) as the animation duration. *Note that animating the top position while using viewport may be buggy. It also doesn't support resizing your viewport after initial load*.
 
+**Since 0.0.4** you can also toggle a class, using the `to:string` as a class that will be added, `delay` and `over` as used with all properties. *Note that this might still be buggy*.
+
+```js
+'.selector': {
+  'class': { to: 'is-top-right', delay: 200, over: 2000 }
+}
+```
+
 ### Dependencies
 
 For now, dependent on any recent jQuery version (using `$()`, `$().find()`, `$.inArray`, `$.proxy` and `$().css()`).

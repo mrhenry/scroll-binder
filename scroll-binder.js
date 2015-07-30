@@ -50,6 +50,7 @@
    */
   ScrollBinder.prototype.init = function () {
     this.initAnimations();
+
     this.animate($(window).scrollTop());
     return this;
   };
@@ -149,6 +150,7 @@
 
   ScrollBinder.prototype.initProperty = function (property, value, $element) {
     var isTransform  = ($.inArray(property, this.transforms) !== -1),
+        isClass      = (property === 'class'),
         defaultValue = parseFloat($element.css(property)),
         from         = value.from,
         to           = value.to,
@@ -172,8 +174,9 @@
 
     // Construct the animation function for this property and attach it to the initialized object
     return {
-      fn: this.buildPropertyFunction(from, to, over, delay),
+      fn: (isClass) ? this.buildToggleClassFunction(to, over, delay) : this.buildPropertyFunction(from, to, over, delay),
       isTransform: isTransform,
+      isClass: isClass,
       unit: unit
     };
   };
@@ -212,6 +215,30 @@
     };
   };
 
+  /**
+   * Build a function that takes a scroll position and returns the current value for a certain property
+   * Compare it to a simple algebra function like y = 2x where x would be the scroll position
+   *
+   * @param  {int|string} to      Maximum property value (scrollPos = max)
+   * @param  {int} over           Maximum scrolling distance
+   * @param  {int} delay          Scrolling distance to wait before scrolling
+   * @return {Function}           Funtion that takes current scroll position as an argument and returns the property value
+   */
+  ScrollBinder.prototype.buildToggleClassFunction = function (to, over, delay) {
+    return function (scrollPos, $element) {
+      var newValue;
+
+      if (over === 'viewport') {
+        over = window.innerHeight;
+      }
+
+      scrollPos -= delay;
+      scrollPos = (scrollPos < 0) ? 0 : scrollPos;
+
+      $element.toggleClass(to, (scrollPos > 0 && scrollPos <= over));
+    };
+  };
+
   ScrollBinder.prototype.requestFrame = (function () {
     return window.requestAnimationFrame       ||
            window.webkitRequestAnimationFrame ||
@@ -245,6 +272,8 @@
               // we'll have to merge them into a single string to work
               if (!!value.isTransform) {
                 transformStack[property] = value.fn(scrollPos) + value.unit;
+              } else if (!!value.isClass) {
+                value.fn(scrollPos, animation.$element);
               } else {
                 animation.$element.css(property, value.fn(scrollPos) + value.unit);
               }

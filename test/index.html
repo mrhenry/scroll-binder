@@ -14,11 +14,13 @@
       position: relative;
       height: 250%;
       min-height: 250%;
+      font-family: Monaco, monospace;
+      -webkit-font-smoothing: antialiased;
+      text-transform: uppercase;
     }
 
     #demo {
-      border: 0 solid #f36355;
-      background-color: #fff;
+      border-width: 0;
       height: 400px;
       width: 400px;
       position: fixed;
@@ -28,13 +30,25 @@
     }
 
     #viewport-demo {
-      border: 10px solid #f36355;
       margin-left: 5vw;
       margin-top: 120vh;
-      display: block;
       height: 3vw;
       width: 3vw;
-      background-color: #fff;
+    }
+
+    #toggle-demo {
+      position: fixed;
+      left: 3vw;
+      bottom: 3vw;
+      height: 100px;
+      width: 100px;
+    }
+
+    #toggle-demo.is-top-right {
+      bottom: auto;
+      left: auto;
+      top: 3vw;
+      right: 3vw;
     }
 
     #scrollpos-indicator {
@@ -46,15 +60,28 @@
       padding: 10px 15px 10px 0;
       width: 50px;
       text-align: right;
-      font-family: Monaco, monospace;
-      -webkit-font-smoothing: antialiased;
+    }
+
+    .demo {
+      background-color: #fff;
+      border: 10px solid #f36355;
+      display: block;
+      position: relative;
+    }
+
+    .demo span {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%);
     }
   </style>
 </head>
 <body>
   <div id="scrollpos-indicator">0</div>
-  <div id="demo"></div>
-  <div id="viewport-demo"></div>
+  <div class="demo" id="demo"><span>Basic</span></div>
+  <div class="demo" id="viewport-demo"><span>Viewport</span></div>
+  <div class="demo" id="toggle-demo"><span>Toggle</span></div>
   <script src="//ajax.googleapis.com/ajax/libs/jquery/2.1.4/jquery.min.js"></script>
   <script type="text/javascript" src="scroll-binder.js"></script>
   <script type="text/javascript">
@@ -71,6 +98,9 @@
           'translateX':    { from: -50, to: -50, unit: '%' },
           'translateY':    { from: -50, to: -50, unit: '%' },
           'rotate':        { from: 0, to: 90, unit: 'deg' }
+        },
+        '#toggle-demo': {
+          'class': { to: 'is-top-right', delay: 200, over: 2000 }
         },
         '#viewport-demo': {
           'width': { from: 3, to: 90, unit: 'vw', viewport: true, delay: 0, over: 'viewport' }
