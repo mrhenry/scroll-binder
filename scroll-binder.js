@@ -59,7 +59,14 @@
    * @return {ScrollBinder} Instance for chainability
    */
   ScrollBinder.prototype.bind = function () {
-    $(window).on('scroll.SCROLL_BINDER', $.proxy(this.onScroll, this));
+    var overflow = this.$element.css('overflow-y'),
+        $scrollTarget = $(window);
+
+    if (overflow === 'auto' || overflow ==='scroll') {
+      $scrollTarget = this.$element;
+    }
+
+    $scrollTarget.on('scroll.SCROLL_BINDER', $.proxy(this.onScroll, this));
     return this;
   };
 
@@ -101,7 +108,14 @@
    * @return {ScrollBinder} Instance for chainability
    */
   ScrollBinder.prototype.unbind = function () {
-    $(window).off('scroll.SCROLL_BINDER');
+    var overflow = this.$element.css('overflow-y'),
+        $scrollTarget = $(window);
+
+    if (overflow === 'auto' || overflow ==='scroll') {
+      $scrollTarget = this.$element;
+    }
+
+    $scrollTarget.off('scroll.SCROLL_BINDER');
     return this;
   };
 
