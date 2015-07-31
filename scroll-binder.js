@@ -129,7 +129,11 @@
     // Loop all selectors
     for (var selector in this.animations) {
       if (this.animations.hasOwnProperty(selector)) {
-        initAnimations[selector] = this.initSelector(selector, this.animations[selector]);
+        var initSelector = this.initSelector(selector, this.animations[selector]);
+
+        if (!!initSelector) {
+          initAnimations[selector] = initSelector;
+        }
       }
     }
 
