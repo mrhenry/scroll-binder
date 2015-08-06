@@ -82,20 +82,25 @@
     this.requestFrame.call(window, function () {
       for (var selector in self.animations) {
         if (self.animations.hasOwnProperty(selector)) {
-          var $element = self.animations[selector].$element,
-              properties = self.animations[selector].properties;
+          var animations = self.animations[selector];
 
-          for (var property in properties) {
-            if (properties.hasOwnProperty(property)) {
-              $element.css(property, '');
+          for (var i = 0; i < animations.length; i++) {
+            var animation = animations[i],
+                $element = animation.$element,
+                properties = animation.properties;
+
+            for (var property in properties) {
+              if (properties.hasOwnProperty(property)) {
+                $element.css(property, '');
+              }
             }
-          }
 
-          $element.css({
-            '-webkit-transform': '',
-            '-ms-transform'    : '',
-            'transform'        : ''
-          });
+            $element.css({
+              '-webkit-transform': '',
+              '-ms-transform'    : '',
+              'transform'        : ''
+            });
+          }
         }
       }
     });
