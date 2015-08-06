@@ -15,6 +15,9 @@
      * @type {Object} Must be jQuery object
      */
     this.$element = $element || $(document.body);
+    this.element = this.$element.get(0);
+
+    this.currentScrollingPosition = -1;
 
     /**
      * Total scrolling distance / duration of the animation
@@ -59,14 +62,30 @@
    * @return {ScrollBinder} Instance for chainability
    */
   ScrollBinder.prototype.bind = function () {
-    var overflow = this.$element.css('overflow-y'),
+    var self = this,
+        overflow = this.$element.css('overflow-y'),
         $scrollTarget = $(window);
+
+    this.loop = function () {
+      self.requestFrame.call(window, function () {
+        var scrollingPosition = $scrollTarget.scrollTop();
+
+        if (scrollingPosition !== self.currentScrollingPosition) {
+          self.onScroll();
+        }
+
+        self.currentScrollingPosition = scrollingPosition;
+
+        self.loop();
+      });
+    };
 
     if (overflow === 'auto' || overflow ==='scroll') {
       $scrollTarget = this.$element;
     }
 
-    $scrollTarget.on('scroll.SCROLL_BINDER', $.proxy(this.onScroll, this));
+    this.loop();
+
     return this;
   };
 
@@ -113,14 +132,8 @@
    * @return {ScrollBinder} Instance for chainability
    */
   ScrollBinder.prototype.unbind = function () {
-    var overflow = this.$element.css('overflow-y'),
-        $scrollTarget = $(window);
+    self.loop = function () { };
 
-    if (overflow === 'auto' || overflow ==='scroll') {
-      $scrollTarget = this.$element;
-    }
-
-    $scrollTarget.off('scroll.SCROLL_BINDER');
     return this;
   };
 
@@ -291,55 +304,53 @@
   ScrollBinder.prototype.animate = function(scrollPos) {
     var self = this;
 
-    this.requestFrame.call(window, function () {
-      // Loop over all selectors
-      for (var selector in self.animations) {
-        if (self.animations.hasOwnProperty(selector)) {
-          var animations = self.animations[selector];
+    // Loop over all selectors
+    for (var selector in self.animations) {
+      if (self.animations.hasOwnProperty(selector)) {
+        var animations = self.animations[selector];
 
-          for (var i = 0; i < animations.length; i++) {
-            var animation = animations[i],
-                transformStack = {};
+        for (var i = 0; i < animations.length; i++) {
+          var animation = animations[i],
+              transformStack = {};
 
-            // Loop all properties for the current selector
-            for (var property in animation.properties) {
-              if (animation.properties.hasOwnProperty(property)) {
-                var value = animation.properties[property];
+          // Loop all properties for the current selector
+          for (var property in animation.properties) {
+            if (animation.properties.hasOwnProperty(property)) {
+              var value = animation.properties[property];
 
-                // Transforms get temporarily stored in a stack because
-                // we'll have to merge them into a single string to work
-                if (!!value.isTransform) {
-                  transformStack[property] = value.fn(scrollPos) + value.unit;
-                } else if (!!value.isClass) {
-                  value.fn(scrollPos, animation.$element);
-                } else {
-                  animation.$element.css(property, value.fn(scrollPos) + value.unit);
-                }
+              // Transforms get temporarily stored in a stack because
+              // we'll have to merge them into a single string to work
+              if (!!value.isTransform) {
+                transformStack[property] = value.fn(scrollPos) + value.unit;
+              } else if (!!value.isClass) {
+                value.fn(scrollPos, animation.$element);
+              } else {
+                animation.$element.css(property, value.fn(scrollPos) + value.unit);
+              }
+            }
+          }
+
+          // If one of the properties was a transform,
+          // build a transform string like
+          // scale(2.3) translateX(20px)
+          if (!$.isEmptyObject(transformStack)) {
+            var transformString = '';
+
+            for (var transformProperty in transformStack) {
+              if (transformStack.hasOwnProperty(transformProperty)) {
+                transformString += transformProperty + '(' + transformStack[transformProperty] + ') ';
               }
             }
 
-            // If one of the properties was a transform,
-            // build a transform string like
-            // scale(2.3) translateX(20px)
-            if (!$.isEmptyObject(transformStack)) {
-              var transformString = '';
-
-              for (var transformProperty in transformStack) {
-                if (transformStack.hasOwnProperty(transformProperty)) {
-                  transformString += transformProperty + '(' + transformStack[transformProperty] + ') ';
-                }
-              }
-
-              animation.$element.css({
-                '-webkit-transform': transformString,
-                '-ms-transform'    : transformString,
-                'transform'        : transformString
-              });
-            }
+            animation.$element.css({
+              '-webkit-transform': transformString,
+              '-ms-transform'    : transformString,
+              'transform'        : transformString
+            });
           }
         }
       }
-    });
+    }
   };
 
   /**
