@@ -103,7 +103,15 @@
           'class': { to: 'is-top-right', delay: 200, over: 2000 }
         },
         '#viewport-demo': {
-          'width': { from: 3, to: 90, unit: 'vw', viewport: true, delay: 0, over: 'viewport' }
+          'width': {
+            from: 3,
+            to: 90,
+            unit: 'vw',
+            viewport: true,
+            delay: 0,
+            over: (window.innerHeight * 1.25),
+            sway: true
+          }
         }
       }
     });

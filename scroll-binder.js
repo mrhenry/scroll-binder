@@ -211,7 +211,8 @@
         over         = value.over || this.scrollDistance,
         delay        = value.delay || this.scrollDelay,
         unit         = (typeof value.unit === 'string') ? value.unit : ((!!isTransform) ? '' : 'px'),
-        viewport     = (typeof value.viewport === 'undefined') ? false : true;
+        viewport     = (typeof value.viewport === 'undefined') ? false : true,
+        sway         = (typeof value.sway === 'undefined') ? false : true;
 
     defaultValue = isNaN(defaultValue) ? 0 : defaultValue;
 
@@ -228,7 +229,7 @@
 
     // Construct the animation function for this property and attach it to the initialized object
     return {
-      fn: (isClass) ? this.buildToggleClassFunction(to, over, delay) : this.buildPropertyFunction(from, to, over, delay),
+      fn: (isClass) ? this.buildToggleClassFunction(to, over, delay) : this.buildPropertyFunction(from, to, over, delay, sway),
       isTransform: isTransform,
       isClass: isClass,
       unit: unit
@@ -245,7 +246,9 @@
    * @param  {int} delay   Scrolling distance to wait before scrolling
    * @return {Function}    Funtion that takes current scroll position as an argument and returns the property value
    */
-  ScrollBinder.prototype.buildPropertyFunction = function(from, to, over, delay) {
+  ScrollBinder.prototype.buildPropertyFunction = function(from, to, over, delay, sway) {
+    sway = sway || false;
+
     return function (scrollPos) {
       var newValue;
 
@@ -256,7 +259,15 @@
       scrollPos -= delay;
       scrollPos = (scrollPos < 0) ? 0 : scrollPos;
 
-      newValue = Math.round((from + (to - from) * scrollPos / over) * 100 ) / 100;
+      if (!!sway) {
+        if (scrollPos > (over / 2)) {
+          newValue = Math.round((to - (to - from) * (scrollPos / (over / 2) - 1)) * 100) / 100;
+        } else {
+          newValue = Math.round((from + (to - from) * scrollPos / (over / 2)) * 100 ) / 100;
+        }
+      } else {
+        newValue = Math.round((from + (to - from) * scrollPos / over) * 100 ) / 100;
+      }
 
       // Force newValue between from and to (if check is for negative numbers (like between -55 and -10))
       if (from < to) {
