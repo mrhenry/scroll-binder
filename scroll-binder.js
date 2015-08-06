@@ -260,12 +260,15 @@
       scrollPos = (scrollPos < 0) ? 0 : scrollPos;
 
       if (!!sway) {
-        if (scrollPos > (over / 2)) {
-          newValue = Math.round((to - (to - from) * (scrollPos / (over / 2) - 1)) * 100) / 100;
-        } else {
-          newValue = Math.round((from + (to - from) * scrollPos / (over / 2)) * 100 ) / 100;
-        }
+        var a = to - from,
+            b = over / 2;
+
+        // Return a parabole that goes through (0,0) (returning `from`)
+        // with its peak at x = over / 2 (returning `to`)
+        newValue = from + (-1 * (a / (b * b)) * ((scrollPos - b) * (scrollPos - b)) + a);
       } else {
+        // Return a line going through (0,0) (returning `from`)
+        // and through x = over returning `to`
         newValue = Math.round((from + (to - from) * scrollPos / over) * 100 ) / 100;
       }
 
