@@ -350,9 +350,9 @@
 
               css['-webkit-transform'] = css['-ms-transform'] = css['transform'] = transformString;
             }
-
-            animation.$element.css(css);
           }
+
+          animation.$element.css(css);
         }
       }
     }
