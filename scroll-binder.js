@@ -42,7 +42,13 @@
     this.scrollEnd = null;
 
     // @todo - More extensive or other solution
-    this.transforms = ['scale', 'scaleX', 'scaleY', 'rotate', 'rotateX', 'rotateY', 'rotateZ', 'translateX', 'translateY'];
+    this.transforms = [
+      'scale', 'scaleX', 'scaleY',
+      'rotate', 'rotateX', 'rotateY', 'rotateZ',
+      'translateX', 'translateY', 'translateZ',
+      'skewX', 'skewY',
+      'perspective'
+    ];
 
     this.init().bind();
   }
@@ -301,7 +307,7 @@
    * @param  {int} scrollPos
    * @return {void}
    */
-  ScrollBinder.prototype.animate = function(scrollPos) {
+  ScrollBinder.prototype.animate = function (scrollPos) {
     var self = this;
 
     // Loop over all selectors
@@ -311,7 +317,8 @@
 
         for (var i = 0; i < animations.length; i++) {
           var animation = animations[i],
-              transformStack = {};
+              transformStack = {},
+              css = {};
 
           // Loop all properties for the current selector
           for (var property in animation.properties) {
@@ -325,7 +332,7 @@
               } else if (!!value.isClass) {
                 value.fn(scrollPos, animation.$element);
               } else {
-                animation.$element.css(property, value.fn(scrollPos) + value.unit);
+                css[property] = value.fn(scrollPos) + value.unit;
               }
             }
           }
@@ -340,13 +347,11 @@
               if (transformStack.hasOwnProperty(transformProperty)) {
                 transformString += transformProperty + '(' + transformStack[transformProperty] + ') ';
               }
+
+              css['-webkit-transform'] = css['-ms-transform'] = css['transform'] = transformString;
             }
 
-            animation.$element.css({
-              '-webkit-transform': transformString,
-              '-ms-transform'    : transformString,
-              'transform'        : transformString
-            });
+            animation.$element.css(css);
           }
         }
       }
