@@ -37,11 +37,11 @@
      */
     this.animations = (typeof options.animations === 'object') ? options.animations : {};
 
-    // @fixme - These two should not be public
+    // @fixme - These should not be public
+    this.scrollTarget = document.body;
     this.scrollFlag = true;
     this.scrollEnd = null;
 
-    // @todo - More extensive or other solution
     this.transforms = [
       'scale', 'scaleX', 'scaleY',
       'rotate', 'rotateX', 'rotateY', 'rotateZ',
@@ -58,8 +58,16 @@
    * @return {ScrollBinder} Instance for chainability
    */
   ScrollBinder.prototype.init = function () {
+    var overflow = this.element.style.overflow,
+        overflowY = this.element.style.overflowY;
+
+    if (overflow === 'auto' || overflow ==='scroll' || overflowY === 'auto' || overflowY ==='scroll') {
+      this.scrollTarget = this.element;
+    }
+
     this.initAnimations();
-    this.animate($(window).scrollTop());
+    this.animate(this.scrollTarget.scrollTop);
+
     return this;
   };
 
@@ -68,13 +76,11 @@
    * @return {ScrollBinder} Instance for chainability
    */
   ScrollBinder.prototype.bind = function () {
-    var self = this,
-        overflow = this.$element.css('overflow-y'),
-        $scrollTarget = $(window);
+    var self = this;
 
     this.loop = function () {
       self.requestFrame.call(window, function () {
-        var scrollingPosition = $scrollTarget.scrollTop();
+        var scrollingPosition = self.scrollTarget.scrollTop;
 
         if (scrollingPosition !== self.currentScrollingPosition) {
           self.onScroll();
@@ -85,10 +91,6 @@
         self.loop();
       });
     };
-
-    if (overflow === 'auto' || overflow ==='scroll') {
-      $scrollTarget = this.$element;
-    }
 
     this.loop();
 
@@ -112,19 +114,18 @@
           for (var i = 0; i < animations.length; i++) {
             var animation = animations[i],
                 $element = animation.$element,
-                properties = animation.properties;
+                properties = animation.properties,
+                css = {};
 
             for (var property in properties) {
               if (properties.hasOwnProperty(property)) {
-                $element.css(property, '');
+                css[property] = '';
               }
             }
 
-            $element.css({
-              '-webkit-transform': '',
-              '-ms-transform'    : '',
-              'transform'        : ''
-            });
+            css['-webkit-transform'] = css['-ms-transform'] = css['transform'] = '';
+            
+            $element.css(css);
           }
         }
       }
@@ -148,7 +149,7 @@
    * @return {Object} All initiated animations
    */
   ScrollBinder.prototype.initAnimations = function () {
-    var initAnimations = {};
+    var initAnimations = [];
 
     // Loop all selectors
     for (var selector in this.animations) {
@@ -156,7 +157,7 @@
         var initSelector = this.initSelector(selector, this.animations[selector]);
 
         if (!!initSelector) {
-          initAnimations[selector] = initSelector;
+          initAnimations.push(initSelector);
         }
       }
     }
@@ -169,25 +170,31 @@
 
   ScrollBinder.prototype.initSelector = function (selector, properties) {
     var self = this,
-        $elements = [],
+        elements = [],
         matches = [];
 
     // Cache the targeted element
     // We can select the parent element by using this instead of a selector
     if (selector === 'this') {
-      $elements = this.$element;
+      elements = [this.element];
     } else {
-      $elements = this.$element.find(selector);
+      elements = this.element.querySelectorAll(selector);
     }
 
-    if ($elements.length === 0) {
+    if (elements.length === 0) {
       return false;
     }
 
-    $elements.each(function () {
+    for (var i = 0; i < elements.length; i++) {
+      var element = elements[i];
+
       // Create a new object that will hold all initialized values
-      var init = { init: true, $element: null, properties: {} };
-      init.$element = $(this);
+      var init = {
+        init: true,
+        element: element,
+        $element: $(element),
+        properties: {}
+      };
 
       // Loop all CSS properties for current selector
       for (var property in properties) {
@@ -197,20 +204,20 @@
       }
 
       matches.push(init);
-    });
+    }
 
     return matches;
   };
 
   ScrollBinder.prototype.initProperty = function (property, value, $element) {
-    var isTransform  = ($.inArray(property, this.transforms) !== -1),
+    var isTransform  = (this.transforms.indexOf(property) > -1),
         isClass      = (property === 'class'),
         defaultValue = parseFloat($element.css(property)),
         from         = value.from,
         to           = value.to,
         over         = value.over || this.scrollDistance,
         delay        = value.delay || this.scrollDelay,
-        unit         = (typeof value.unit === 'string') ? value.unit : ((!!isTransform) ? '' : 'px'),
+        unit         = (typeof value.unit === 'string') ? value.unit : (isTransform ? '' : 'px'),
         viewport     = (typeof value.viewport === 'undefined') ? false : true,
         sway         = (typeof value.sway === 'undefined') ? false : true;
 
@@ -223,7 +230,7 @@
       over = (window.innerHeight - 2 * delay);
     }
 
-    if (!!viewport) {
+    if (viewport) {
       delay += ($element.offset().top - window.innerHeight);
     }
 
@@ -249,38 +256,36 @@
   ScrollBinder.prototype.buildPropertyFunction = function(from, to, over, delay, sway) {
     sway = sway || false;
 
-    return function (scrollPos) {
-      var newValue;
+    if (from === to) {
+      return function (scrollPos) { return from; }
+    }
 
-      if (over === 'viewport') {
-        over = window.innerHeight;
-      }
-
-      scrollPos -= delay;
-      scrollPos = (scrollPos < 0) ? 0 : scrollPos;
-
-      if (!!sway) {
+    if (sway) {
+      return function (scrollPos) {
         var a = to - from,
             b = over / 2;
 
+        scrollPos -= delay;
+
+        if (scrollPos <= 0) { return from; }
+        if (scrollPos >= over) { return to; }
+
         // Return a parabole that goes through (0,0) (returning `from`)
         // with its peak at x = over / 2 (returning `to`)
-        newValue = from + (-1 * (a / (b * b)) * ((scrollPos - b) * (scrollPos - b)) + a);
-      } else {
-        // Return a line going through (0,0) (returning `from`)
-        // and through x = over returning `to`
-        newValue = Math.round((from + (to - from) * scrollPos / over) * 100 ) / 100;
+        return Math.round(from + (-1 * (a / (b * b)) * ((scrollPos - b) * (scrollPos - b)) + a) * 100) / 100;
       }
+    }
 
-      // Force newValue between from and to (if check is for negative numbers (like between -55 and -10))
-      if (from < to) {
-        newValue = (newValue < from) ? from : (newValue > to) ? to : newValue;
-      } else {
-        newValue = (newValue > from) ? from : (newValue < to) ? to : newValue;
-      }
+    return function (scrollPos) {
+      scrollPos -= delay;
 
-      return newValue;
-    };
+      if (scrollPos <= 0) { return from; }
+      if (scrollPos >= over) { return to; }
+
+      // Return a line going through (0,0) (returning `from`)
+      // and through x = over returning `to`
+      return Math.round((from + (to - from) * scrollPos / over) * 100 ) / 100;
+    }
   };
 
   /**
@@ -293,17 +298,20 @@
    * @return {Function}           Funtion that takes current scroll position as an argument and returns the property value
    */
   ScrollBinder.prototype.buildToggleClassFunction = function (to, over, delay) {
-    return function (scrollPos, $element) {
+    return function (scrollPos, element) {
       var newValue;
-
-      if (over === 'viewport') {
-        over = window.innerHeight;
-      }
 
       scrollPos -= delay;
       scrollPos = (scrollPos < 0) ? 0 : scrollPos;
 
-      $element.toggleClass(to, (scrollPos > 0 && scrollPos <= over));
+      if (scrollPos > 0 && scrollPos <= over) {
+        if (element.className.indexOf(to) === -1) {
+          element.className = element.className + ' ' + to;
+        }
+      } else if (element.className.indexOf(to) > -1) {
+        var regex = new RegExp('\s*' + to, 'gi');
+        element.className = element.className.replace(regex, '');
+      }
     };
   };
 
@@ -325,51 +333,49 @@
     var self = this;
 
     // Loop over all selectors
-    for (var selector in self.animations) {
-      if (self.animations.hasOwnProperty(selector)) {
-        var animations = self.animations[selector];
+    for (var i = 0; i < this.animations.length; i++) {
+      var selector = this.animations[i];
 
-        for (var i = 0; i < animations.length; i++) {
-          var animation = animations[i],
-              transformStack = {},
-              css = {};
+      for (var j = 0; j < selector.length; j++) {
+        var animation = selector[j],
+            transformStack = {},
+            css = {};
 
-          // Loop all properties for the current selector
-          for (var property in animation.properties) {
-            if (animation.properties.hasOwnProperty(property)) {
-              var value = animation.properties[property];
+        // Loop all properties for the current selector
+        for (var property in animation.properties) {
+          if (animation.properties.hasOwnProperty(property)) {
+            var value = animation.properties[property],
+                transformString = '';
 
-              // Transforms get temporarily stored in a stack because
-              // we'll have to merge them into a single string to work
-              if (!!value.isTransform) {
-                transformStack[property] = value.fn(scrollPos) + value.unit;
-              } else if (!!value.isClass) {
-                value.fn(scrollPos, animation.$element);
-              } else {
-                css[property] = value.fn(scrollPos) + value.unit;
-              }
+            // Transforms get temporarily stored in a stack because
+            // we'll have to merge them into a single string to work
+            if (value.isTransform) {
+              transformStack[property] = value.fn(scrollPos) + value.unit;
+            } else if (value.isClass) {
+              value.fn(scrollPos, animation.element);
+            } else {
+              css[property] = value.fn(scrollPos) + value.unit;
             }
           }
-
-          // If one of the properties was a transform,
-          // build a transform string like
-          // scale(2.3) translateX(20px)
-          if (!$.isEmptyObject(transformStack)) {
-            var transformString = '';
-
-            for (var transformProperty in transformStack) {
-              if (transformStack.hasOwnProperty(transformProperty)) {
-                transformString += transformProperty + '(' + transformStack[transformProperty] + ') ';
-              }
-
-              css['-webkit-transform'] = css['-ms-transform'] = css['transform'] = transformString;
-            }
-          }
-
-          animation.$element.css(css);
         }
+
+        // If one of the properties was a transform,
+        // build a transform string like
+        // scale(2.3) translateX(20px)
+        for (var transformProperty in transformStack) {
+          if (transformStack.hasOwnProperty(transformProperty)) {
+            transformString += transformProperty + '(' + transformStack[transformProperty] + ') ';
+          }
+        }
+
+        css['-webkit-transform'] = css['-ms-transform'] = css['transform'] = transformString;
+
+        animation.$element.css(css);
       }
     }
+
+    // Re-enable scroll detection when done
+    this.scrollFlag = true;
   };
 
   /**
@@ -392,12 +398,7 @@
     this.scrollFlag = false;
 
     // Animate all properties
-    this.animate(this.$element.scrollTop());
-
-    // Once per 16ms (= 1 frame at 60fps)
-    setTimeout(function () {
-      self.scrollFlag = true;
-    }, 16);
+    this.animate(this.scrollTarget.scrollTop);
 
     if (!fromScrollEnd) {
       this.scrollEnd = setTimeout(function () {
