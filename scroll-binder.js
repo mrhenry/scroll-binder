@@ -58,8 +58,8 @@
    * @return {ScrollBinder} Instance for chainability
    */
   ScrollBinder.prototype.init = function () {
-    var overflow = this.element.style.overflow,
-        overflowY = this.element.style.overflowY;
+    var overflow = this.$element.css('overflow'),
+        overflowY = this.$element.css('overflow-y');
 
     if (overflow === 'auto' || overflow ==='scroll' || overflowY === 'auto' || overflowY ==='scroll') {
       this.scrollTarget = this.element;
@@ -124,7 +124,7 @@
             }
 
             css['-webkit-transform'] = css['-ms-transform'] = css['transform'] = '';
-            
+
             $element.css(css);
           }
         }
@@ -375,7 +375,9 @@
     }
 
     // Re-enable scroll detection when done
-    this.scrollFlag = true;
+    setTimeout(() => {
+      this.scrollFlag = true;
+    }, 16);
   };
 
   /**
