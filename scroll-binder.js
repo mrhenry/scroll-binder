@@ -268,7 +268,7 @@
         scrollPos -= delay;
 
         if (scrollPos <= 0) { return from; }
-        if (scrollPos >= over) { return to; }
+        if (scrollPos >= over) { return from; }
 
         // Return a parabole that goes through (0,0) (returning `from`)
         // with its peak at x = over / 2 (returning `to`)
