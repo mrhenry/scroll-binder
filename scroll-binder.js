@@ -58,8 +58,9 @@
    * @return {ScrollBinder} Instance for chainability
    */
   ScrollBinder.prototype.init = function () {
-    var overflow = this.$element.css('overflow'),
-        overflowY = this.$element.css('overflow-y');
+    var styles = window.getComputedStyle(this.element),
+        overflow = styles.getPropertyValue('overflow'),
+        overflowY = styles.getPropertyValue('overflow-y');
 
     if (overflow === 'auto' || overflow ==='scroll' || overflowY === 'auto' || overflowY ==='scroll') {
       this.scrollTarget = this.element;
@@ -76,23 +77,37 @@
    * @return {ScrollBinder} Instance for chainability
    */
   ScrollBinder.prototype.bind = function () {
-    var self = this;
+    var self = this,
+        noScrollTimeout = null,
+        bind = function () {
+          $(window).one('scroll', function () {
+            self.loop();
+          });
+        };
 
     this.loop = function () {
-      self.requestFrame.call(window, function () {
-        var scrollingPosition = self.scrollTarget.scrollTop;
+      var scrollingPosition = self.scrollTarget.scrollTop,
+          scrollChanged = (scrollingPosition !== self.currentScrollingPosition);
 
-        if (scrollingPosition !== self.currentScrollingPosition) {
+      self.currentScrollingPosition = scrollingPosition;
+
+      self.nextFrame = self.requestFrame.call(window, function () {
+        if (scrollChanged) {
+          clearTimeout(noScrollTimeout);
+          noScrollTimeout = null;
           self.onScroll();
+        } else if (!noScrollTimeout) {
+          noScrollTimeout = setTimeout(function () {
+            self.cancelFrame.call(window, self.nextFrame);
+            bind();
+          }, 128);
         }
-
-        self.currentScrollingPosition = scrollingPosition;
 
         self.loop();
       });
     };
 
-    this.loop();
+    bind();
 
     return this;
   };
@@ -114,12 +129,17 @@
           for (var i = 0; i < animations.length; i++) {
             var animation = animations[i],
                 $element = animation.$element,
+                element = animation.element,
                 properties = animation.properties,
                 css = {};
 
             for (var property in properties) {
               if (properties.hasOwnProperty(property)) {
-                css[property] = '';
+                if (property === 'class') {
+                  properties[property].fn(self.scrollTarget.scrollTop, animation.element);
+                } else {
+                  css[property] = '';
+                }
               }
             }
 
@@ -139,7 +159,8 @@
    * @return {ScrollBinder} Instance for chainability
    */
   ScrollBinder.prototype.unbind = function () {
-    self.loop = function () { };
+    this.loop = function () { };
+    this.cancelFrame.call(window, this.nextFrame);
 
     return this;
   };
@@ -191,15 +212,15 @@
       // Create a new object that will hold all initialized values
       var init = {
         init: true,
-        element: element,
         $element: $(element),
+        element: element,
         properties: {}
       };
 
       // Loop all CSS properties for current selector
       for (var property in properties) {
         if (properties.hasOwnProperty(property)) {
-          init.properties[property] = self.initProperty(property, properties[property], init.$element);
+          init.properties[property] = self.initProperty(property, properties[property], init.element);
         }
       }
 
@@ -209,10 +230,11 @@
     return matches;
   };
 
-  ScrollBinder.prototype.initProperty = function (property, value, $element) {
+  ScrollBinder.prototype.initProperty = function (property, value, element) {
     var isTransform  = (this.transforms.indexOf(property) > -1),
         isClass      = (property === 'class'),
-        defaultValue = parseFloat($element.css(property)),
+        isLock       = (property === 'lock'),
+        defaultValue = parseFloat(window.getComputedStyle(element)[property]),
         from         = value.from,
         to           = value.to,
         over         = value.over || this.scrollDistance,
@@ -226,19 +248,43 @@
     from = (typeof from === 'undefined') ? defaultValue : from;
     to   = (typeof to === 'undefined') ? defaultValue : to;
 
+    if (typeof over === 'function') {
+      over = over(element);
+    }
+
+    if (typeof delay === 'function') {
+      delay = delay(element);
+    }
+
     if (over === 'viewport') {
       over = (window.innerHeight - 2 * delay);
     }
 
     if (viewport) {
-      delay += ($element.offset().top - window.innerHeight);
+      // @ todo — Fix this by looping offset parents until we're at this.scrollTarget
+      // or something :-)
+      // We're currently not running into bugs with this
+      // because if we're not scrolling on body
+      // we're doing it in a (0, 0, window.width, window.height) div
+      delay += ($(element).offset().top - window.innerHeight);
+    }
+
+    let fn;
+
+    if (isClass) {
+      fn = this.buildToggleClassFunction(to, over, delay)
+    } else if (isLock) {
+      fn = this.buildLockFunction(over, delay, element);
+    } else {
+      fn = this.buildPropertyFunction(from, to, over, delay, sway)
     }
 
     // Construct the animation function for this property and attach it to the initialized object
     return {
-      fn: (isClass) ? this.buildToggleClassFunction(to, over, delay) : this.buildPropertyFunction(from, to, over, delay, sway),
+      fn: fn,
       isTransform: isTransform,
       isClass: isClass,
+      isLock: isLock,
       unit: unit
     };
   };
@@ -254,38 +300,54 @@
    * @return {Function}    Funtion that takes current scroll position as an argument and returns the property value
    */
   ScrollBinder.prototype.buildPropertyFunction = function(from, to, over, delay, sway) {
+    var lookup = {},
+        fn;
+
     sway = sway || false;
 
     if (from === to) {
-      return function (scrollPos) { return from; }
-    }
-
-    if (sway) {
-      return function (scrollPos) {
+      fn = function (scrollPos) { return from; }
+    } else if (sway) {
+      fn = function (scrollPos) {
         var a = to - from,
             b = over / 2;
 
         scrollPos -= delay;
 
-        if (scrollPos <= 0) { return from; }
-        if (scrollPos >= over) { return from; }
+        if (scrollPos <= 0) { lookup[scrollPos] = from; return from; }
+        if (scrollPos >= over) { lookup[scrollPos] = from; return from; }
 
         // Return a parabole that goes through (0,0) (returning `from`)
         // with its peak at x = over / 2 (returning `to`)
-        return Math.round(from + (-1 * (a / (b * b)) * ((scrollPos - b) * (scrollPos - b)) + a) * 100) / 100;
+        lookup[scrollPos] = Math.round(from + (-1 * (a / (b * b)) * ((scrollPos - b) * (scrollPos - b)) + a) * 100) / 100;
+
+        return lookup[scrollPos];
+      }
+    } else {
+      fn = function (scrollPos) {
+        if (!!lookup[scrollPos] || scrollPos === 0) {
+          return lookup[scrollPos];
+        }
+
+        scrollPos -= delay;
+
+        if (scrollPos <= 0) { lookup[scrollPos] = from; return from; }
+        if (scrollPos >= over) { lookup[scrollPos] = to; return to; }
+
+        // Return a line going through (0,0) (returning `from`)
+        // and through x = over returning `to`
+        lookup[scrollPos] = Math.round((from + (to - from) * scrollPos / over) * 100 ) / 100;
+        return lookup[scrollPos];
       }
     }
 
-    return function (scrollPos) {
-      scrollPos -= delay;
-
-      if (scrollPos <= 0) { return from; }
-      if (scrollPos >= over) { return to; }
-
-      // Return a line going through (0,0) (returning `from`)
-      // and through x = over returning `to`
-      return Math.round((from + (to - from) * scrollPos / over) * 100 ) / 100;
+    if (from !== to) {
+      for (let i = delay; i <= delay + over; i++) {
+        fn(i);
+      }      
     }
+
+    return fn;
   };
 
   /**
@@ -309,8 +371,63 @@
           element.className = element.className + ' ' + to;
         }
       } else if (element.className.indexOf(to) > -1) {
-        var regex = new RegExp('\s*' + to, 'gi');
+        var regex = new RegExp('\s*' + to + '\s*', 'i');
         element.className = element.className.replace(regex, '');
+      }
+    };
+  };
+
+  /**
+   * Build a function that takes a scroll position and returns the current value for a certain property
+   * Compare it to a simple algebra function like y = 2x where x would be the scroll position
+   *
+   * @param  {int|string} to      Maximum property value (scrollPos = max)
+   * @param  {int} over           Maximum scrolling distance
+   * @param  {int} delay          Scrolling distance to wait before scrolling
+   * @return {Function}           Funtion that takes current scroll position as an argument and returns the property value
+   */
+  ScrollBinder.prototype.buildLockFunction = function (over, delay, element) {
+    var $element = $(element),
+        original = {
+          left: $element.offset().left,
+          width: $element.outerWidth(),
+          top: $element.position().top,
+        },
+        offsetParent = {
+          left: $element.offsetParent().offset().left
+        },
+        fixedTop = 0;
+
+    return function (scrollPos) {
+      var newValue;
+
+      scrollPos -= delay;
+      scrollPos = (scrollPos < 0) ? 0 : scrollPos;
+
+      if ((scrollPos <= 0 || scrollPos > over) && !!$element.data('is-locked')) {
+        let left  = original.left,
+            width = original.width,
+            top   = original.top;
+
+        if (scrollPos > over) {
+          top += over;
+          $element.attr('style', '').css({ position: 'absolute', top: top });
+        } else {
+          $element.attr('style', '');
+        }
+
+        $element.data('is-locked', false);
+      } else if (scrollPos > 0 && scrollPos < over && !$element.data('is-locked')) {
+        let left  = original.left,
+            width = original.width,
+            top   = fixedTop || ($element.offset().top + scrollPos);
+
+        if (!fixedTop) {
+          fixedTop = top;
+        }
+
+        $element.css({ position: 'fixed', left: left, width: width, top: fixedTop, bottom: 'auto', right: 'auto', margin: 0 });
+        $element.data('is-locked', true);
       }
     };
   };
@@ -322,6 +439,13 @@
            function (callback) {
              window.setTimeout(callback, 1000 / 60);
            };
+  })();
+
+  ScrollBinder.prototype.cancelFrame = (function () {
+    return window.cancelAnimationFrame       ||
+           window.webkitCancelAnimationFrame ||
+           window.mozCancelAnimationFrame    ||
+           window.clearTimeout;
   })();
 
   /**
@@ -353,6 +477,8 @@
               transformStack[property] = value.fn(scrollPos) + value.unit;
             } else if (value.isClass) {
               value.fn(scrollPos, animation.element);
+            } else if (value.isLock) {
+              value.fn(scrollPos);
             } else {
               css[property] = value.fn(scrollPos) + value.unit;
             }

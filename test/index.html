@@ -7,6 +7,8 @@
     * {
       margin: 0;
       padding: 0;
+      transition: all 128ms ease-out;
+      -webkit-backface-visibility: hidden;
     }
 
     html, body {
@@ -82,7 +84,7 @@
   <div class="demo" id="demo"><span>Basic</span></div>
   <div class="demo" id="viewport-demo"><span>Viewport</span></div>
   <div class="demo" id="toggle-demo"><span>Toggle</span></div>
-  <script src="//ajax.googleapis.com/ajax/libs/jquery/2.1.4/jquery.min.js"></script>
+  <script src="../jquery-2.1.4.min.js"></script>
   <script type="text/javascript" src="scroll-binder.js"></script>
   <script type="text/javascript">
     $(window).on('scroll', function () {
