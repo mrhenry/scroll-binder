@@ -300,8 +300,13 @@
    * @return {Function}    Funtion that takes current scroll position as an argument and returns the property value
    */
   ScrollBinder.prototype.buildPropertyFunction = function(from, to, over, delay, sway) {
-    var lookup = {},
-        fn;
+    var lookup, fn;
+
+    if ('Float64Array' in window) {
+      lookup = new Float32Array(Math.ceil(over));
+    } else {
+      lookup = new Array(Math.ceil(over));
+    }
 
     sway = sway || false;
 
