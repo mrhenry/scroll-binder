@@ -314,13 +314,13 @@
       fn = function (scrollPos) { return from; }
     } else if (sway) {
       fn = function (scrollPos) {
-        var a = to - from,
-            b = over / 2;
-
         scrollPos -= delay;
 
         if (scrollPos <= 0) { lookup[scrollPos] = from; return from; }
         if (scrollPos >= over) { lookup[scrollPos] = from; return from; }
+
+        var a = to - from,
+            b = over / 2;
 
         // Return a parabole that goes through (0,0) (returning `from`)
         // with its peak at x = over / 2 (returning `to`)
