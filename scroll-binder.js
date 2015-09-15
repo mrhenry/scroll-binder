@@ -80,10 +80,14 @@
     var self = this,
         noScrollTimeout = null,
         bind = function () {
-          $(window).one('scroll', function () {
-            self.loop();
-          });
+          $(self.scrollTarget).one('scroll', function () { self.loop(); });
         };
+
+    if ($(self.scrollTarget).is('body')) {
+      bind = function () {
+        $(window).one('scroll', function () { self.loop(); });
+      };
+    }
 
     this.loop = function () {
       var scrollingPosition = self.scrollTarget.scrollTop,
