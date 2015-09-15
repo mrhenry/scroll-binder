@@ -215,14 +215,22 @@
         $element: $(element),
         element: element,
         properties: {}
-      };
+      }, willChange = [];
 
       // Loop all CSS properties for current selector
       for (var property in properties) {
         if (properties.hasOwnProperty(property)) {
           init.properties[property] = self.initProperty(property, properties[property], init.element);
+
+          if (init.properties[property].isTransform && willChange.indexOf('transform') === -1) {
+            willChange.push('transform');
+          } else if (!init.properties[property].isTransform) {
+            willChange.push(property);
+          }
         }
       }
+
+      init.element.style.willChange = willChange.join(',');
 
       matches.push(init);
     }
