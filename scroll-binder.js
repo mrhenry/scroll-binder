@@ -314,8 +314,13 @@
   ScrollBinder.prototype.buildPropertyFunction = function(from, to, over, delay, sway) {
     var lookup, fn;
 
-    if ('Float64Array' in window) {
-      lookup = new Float32Array(Math.ceil(over));
+    delay = ~~delay;
+
+    if ('Int16Array' in window) {
+      // This can offcourse throw weird bugs when using values bigger than Int16 can hold
+      // but that should actually never be the case because then you're doing something
+      // really weird
+      lookup = new Int16Array(Math.ceil(over));
     } else {
       lookup = new Array(Math.ceil(over));
     }
@@ -328,40 +333,44 @@
       fn = function (scrollPos) {
         scrollPos -= delay;
 
-        if (scrollPos <= 0) { lookup[scrollPos] = from; return from; }
-        if (scrollPos >= over) { lookup[scrollPos] = from; return from; }
+        if (scrollPos <= 0 || scrollPos >= over) { return from; }
+
+        if (!!lookup[scrollPos]) {
+          return lookup[scrollPos] / 100;
+        }
 
         var a = to - from,
             b = over / 2;
 
         // Return a parabole that goes through (0,0) (returning `from`)
         // with its peak at x = over / 2 (returning `to`)
-        lookup[scrollPos] = Math.round(from + (-1 * (a / (b * b)) * ((scrollPos - b) * (scrollPos - b)) + a) * 100) / 100;
+        lookup[scrollPos] = Math.round(from + (-1 * (a / (b * b)) * ((scrollPos - b) * (scrollPos - b)) + a) * 100);
 
-        return lookup[scrollPos];
+        return lookup[scrollPos] / 100;
       }
     } else {
       fn = function (scrollPos) {
-        if (!!lookup[scrollPos] || scrollPos === 0) {
-          return lookup[scrollPos];
-        }
-
         scrollPos -= delay;
 
-        if (scrollPos <= 0) { lookup[scrollPos] = from; return from; }
-        if (scrollPos >= over) { lookup[scrollPos] = to; return to; }
+        if (scrollPos <= 0) { return from; }
+        if (scrollPos >= over) { return to; }
+
+        if (!!lookup[scrollPos]) {
+          return lookup[scrollPos] / 100;
+        }
 
         // Return a line going through (0,0) (returning `from`)
         // and through x = over returning `to`
-        lookup[scrollPos] = Math.round((from + (to - from) * scrollPos / over) * 100 ) / 100;
-        return lookup[scrollPos];
+        var v = Math.round((from + (to - from) * scrollPos / over) * 100);
+        lookup[scrollPos] = Math.round((from + (to - from) * scrollPos / over) * 100);
+        return lookup[scrollPos] / 100;
       }
     }
 
     if (from !== to) {
       for (let i = delay; i <= delay + over; i++) {
         fn(i);
-      }      
+      }
     }
 
     return fn;
