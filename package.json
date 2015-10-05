@@ -1,0 +1,29 @@
+{
+  "name": "scroll-binder",
+  "version": "1.2.6",
+  "description": "Scroll Binder is a simple module that binds CSS values to scroll position.",
+  "main": "scroll-binder.js",
+  "directories": {
+    "test": "test"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/mrhenry/scroll-binder.git"
+  },
+  "keywords": [
+    "scroll",
+    "bind",
+    "event",
+    "animation",
+    "parallax"
+  ],
+  "author": "Pieter Beulque <pieter@mrhenry.be>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/mrhenry/scroll-binder/issues"
+  },
+  "homepage": "https://github.com/mrhenry/scroll-binder"
+}

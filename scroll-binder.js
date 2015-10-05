@@ -281,7 +281,7 @@
       delay += ($(element).offset().top - window.innerHeight);
     }
 
-    let fn;
+    var fn;
 
     if (isClass) {
       fn = this.buildToggleClassFunction(to, over, delay)
@@ -368,7 +368,7 @@
     }
 
     if (from !== to) {
-      for (let i = delay; i <= delay + over; i++) {
+      for (var i = delay; i <= delay + over; i++) {
         fn(i);
       }
     }
@@ -431,7 +431,7 @@
       scrollPos = (scrollPos < 0) ? 0 : scrollPos;
 
       if ((scrollPos <= 0 || scrollPos > over) && !!$element.data('is-locked')) {
-        let left  = original.left,
+        var left  = original.left,
             width = original.width,
             top   = original.top;
 
@@ -444,7 +444,7 @@
 
         $element.data('is-locked', false);
       } else if (scrollPos > 0 && scrollPos < over && !$element.data('is-locked')) {
-        let left  = original.left,
+        var left  = original.left,
             width = original.width,
             top   = fixedTop || ($element.offset().top + scrollPos);
 
