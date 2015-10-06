@@ -527,8 +527,8 @@
     }
 
     // Re-enable scroll detection when done
-    setTimeout(() => {
-      this.scrollFlag = true;
+    setTimeout(function() {
+      self.scrollFlag = true;
     }, 16);
   };
 
