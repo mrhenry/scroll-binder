@@ -1,6 +1,6 @@
 {
   "name": "scroll-binder",
-  "version": "1.2.7",
+  "version": "1.2.8",
   "description": "Scroll Binder is a simple module that binds CSS values to scroll position.",
   "main": "scroll-binder.js",
   "directories": {

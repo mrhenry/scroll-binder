@@ -67,7 +67,8 @@
     }
 
     this.initAnimations();
-    this.animate(this.scrollTarget.scrollTop);
+    var scrollingPosition = $(this.scrollTarget).is('body') ? $(window).scrollTop() : this.scrollTarget.scrollTop;
+    this.animate(scrollingPosition);
 
     return this;
   };
@@ -90,7 +91,7 @@
     }
 
     this.loop = function () {
-      var scrollingPosition = self.scrollTarget.scrollTop,
+      var scrollingPosition = $(self.scrollTarget).is('body') ? $(window).scrollTop() : self.scrollTarget.scrollTop,
           scrollChanged = (scrollingPosition !== self.currentScrollingPosition);
 
       self.currentScrollingPosition = scrollingPosition;
@@ -552,7 +553,8 @@
     this.scrollFlag = false;
 
     // Animate all properties
-    this.animate(this.scrollTarget.scrollTop);
+    var scrollingPosition = $(this.scrollTarget).is('body') ? $(window).scrollTop() : this.scrollTarget.scrollTop;
+    this.animate(scrollingPosition);
 
     if (!fromScrollEnd) {
       this.scrollEnd = setTimeout(function () {
